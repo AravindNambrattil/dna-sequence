@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: dna_sequence
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secret123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgress-assignment_pgdata:/var/lib/postgresql/data
+
+volumes:
+  postgress-assignment_pgdata:
+    external: true
+    
