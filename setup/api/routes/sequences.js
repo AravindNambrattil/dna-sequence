@@ -1,8 +1,8 @@
 const express = require('express');
 const pool = require('../db');
 const router = express.Router();
-const { align } = require('../alignment');
 
+const { align } = require('../alignment');
 const { v4: uuidv4 } = require('uuid');
 
 function parseSequences(text) {
@@ -92,6 +92,40 @@ router.get('/sequences', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to fetch sequences' });
+  }
+});
+
+router.get('/sequences/motif/:batchId', async (req, res) => {
+  const { batchId } = req.params;
+  const { motif } = req.query;
+
+  if (!motif) {
+    return res.status(400).json({ error: 'Provide a motif to search for' });
+  }
+
+  try {
+    const result = await pool.query(
+      'SELECT * FROM sequences WHERE batch_id = $1',
+      [batchId]
+    );
+
+    const searchTerm = motif.toUpperCase();
+    const matches = result.rows
+      .map(seq => {
+        const positions = [];
+        let idx = seq.sequence.indexOf(searchTerm);
+        while (idx !== -1) {
+          positions.push(idx);
+          idx = seq.sequence.indexOf(searchTerm, idx + 1);
+        }
+        return { name: seq.name, sequence: seq.sequence, positions };
+      })
+      .filter(seq => seq.positions.length > 0);
+
+    res.json({ motif: searchTerm, matches });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to search motif' });
   }
 });
 
